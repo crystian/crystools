@@ -1,16 +1,10 @@
 ---
 name: statusline
 description: Configure Claude Code status line with context, git, cost, rate limits, and cache info. Use when the user wants to set up, update, or fix their status line. Triggers on "statusline", "status line", "status bar", "barra de estado".
-user-invocable: true
-allowed-tools:
-  - Read
-  - Edit
-  - Bash(grep *)
-  - Bash(find *)
 author: Crystian
 license: MIT
 metadata:
-  version: 0.1.4
+  version: 0.1.5
   tags: statusline, status-bar, ui, productivity
   github: https://github.com/crystian/skills
   linkedin: https://www.linkedin.com/in/crystian
