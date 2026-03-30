@@ -26,7 +26,7 @@ Inform the user:
 
 > This command will configure your Claude Code status line by modifying `~/.claude/settings.json`.
 > It will point to a bash script (`statusline-command.sh`) bundled with this plugin that runs on every status line refresh.
-> You can review the script source here: https://github.com/crystian/crystools/blob/main/plugins/crystools/scripts/statusline-command.sh
+> You can review the script source here: https://github.com/crystian/crystools/blob/main/scripts/statusline-command.sh
 > You will be asked for permission before any file is modified.
 
 Wait for the user to confirm before proceeding. If the user declines, do nothing and stop.
@@ -41,7 +41,7 @@ Wait for the user to confirm before proceeding. If the user declines, do nothing
 
 1. **Find the script path** — resolve the absolute path to `statusline-command.sh`:
    ```bash
-   find ~/.claude -path "*/crystools/scripts/statusline-command.sh" 2>/dev/null | head -1
+   find ~/.claude -name "statusline-command.sh" -path "*/scripts/*" 2>/dev/null | head -1
    ```
    If not found, ask the user for the plugin location.
 
