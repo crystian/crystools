@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-PLUGIN_JSON=".claude-plugin/plugin.json"
+PLUGIN_JSON="plugins/crystools/.claude-plugin/plugin.json"
 
 if [ ! -f "$PLUGIN_JSON" ]; then
   exit 0
@@ -33,7 +33,7 @@ sed -i "s/\"version\": \"$CURRENT\"/\"version\": \"$NEW\"/" "$PLUGIN_JSON"
 git add "$PLUGIN_JSON"
 
 # Bump version in all SKILL.md metadata
-for SKILL in skills/*/SKILL.md; do
+for SKILL in plugins/crystools/skills/*/SKILL.md; do
   if [ -f "$SKILL" ] && grep -q "version: $CURRENT" "$SKILL"; then
     sed -i "s/version: $CURRENT/version: $NEW/" "$SKILL"
     git add "$SKILL"
