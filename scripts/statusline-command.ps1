@@ -1,7 +1,7 @@
 # Claude Code status line — powerline style + atomic palette + Nerd Font
 
 if (-not (Get-Command jq -ErrorAction SilentlyContinue)) {
-    Write-Host "jq not found - install it: https://jqlang.github.io/jq/download/"
+    "jq not found - install it: https://jqlang.github.io/jq/download/"
     exit 0
 }
 
@@ -220,4 +220,4 @@ if ($cache_create -or $cache_read) {
 # Spinner
 $line2 += Seg "0;200;255" $spin_ico
 
-Write-Host "${line1}`n${line2}"
+"${line1}`n${line2}"
