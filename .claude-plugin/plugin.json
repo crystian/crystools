@@ -1,5 +1,5 @@
 {
-  "name": "mia-statusline",
+  "name": "crystools",
   "version": "0.2.8",
   "description": "Status line with context window, git, cost, rate limits, and cache stats.",
   "author": {
