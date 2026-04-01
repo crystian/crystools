@@ -1,0 +1,66 @@
+name: Bump Version
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'chore: bump version')"
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Bump version
+        run: |
+          FILE=".claude-plugin/plugin.json"
+          CURRENT=$(jq -r '.version' "$FILE")
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+
+          BUMP="${{ inputs.bump || 'patch' }}"
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          NEW="${MAJOR}.${MINOR}.${PATCH}"
+          jq --arg v "$NEW" '.version = $v' "$FILE" > tmp.json && mv tmp.json "$FILE"
+          echo "CURRENT=$CURRENT" >> "$GITHUB_ENV"
+          echo "VERSION=$NEW" >> "$GITHUB_ENV"
+          echo "Bumped $CURRENT -> $NEW"
+
+      - name: Bump SKILL.md versions
+        run: |
+          shopt -s nullglob
+          for SKILL in skills/*/SKILL.md; do
+            sed -i "s/version: $CURRENT/version: $VERSION/" "$SKILL"
+          done
+
+      - name: Bump command versions
+        run: |
+          shopt -s nullglob
+          for CMD in commands/*.md; do
+            sed -i "s/version: $CURRENT/version: $VERSION/" "$CMD"
+          done
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: bump version to $VERSION"
+          git push

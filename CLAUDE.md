@@ -9,22 +9,17 @@ Claude Code plugin with productivity tools: status line, utilities, and workflow
 ```
 .claude-plugin/
   plugin.json       — plugin manifest (name, version, description)
+.github/workflows/
+  bump-version.yml  — GitHub Actions auto version bump on push to main
 commands/           — slash commands (auto-discovered)
   <name>.md         — command definition (frontmatter + instructions)
 scripts/            — supporting scripts referenced by commands
-hooks/
-  pre-commit        — interactive version bump for plugin.json
-setup.sh            — configures git to use hooks/ directory
 ```
 
 
 ## Version Management
 
-Versions are managed via the pre-commit hook — it prompts for patch/minor/major bump on each commit and updates `.claude-plugin/plugin.json`. Never bump versions manually or programmatically outside this hook.
-
-## Pre-commit Hook
-
-The hook at `hooks/pre-commit` is interactive (reads from `/dev/tty`) — it cannot run in non-interactive contexts. When committing from Claude Code, the user will need to handle the interactive prompt or skip with `s`.
+Versions are managed via GitHub Actions (`.github/workflows/bump-version.yml`). On every push to main, the workflow auto-bumps patch version in `plugin.json`, `skills/*/SKILL.md`, and `commands/*.md`. Can also be triggered manually for minor/major bumps via workflow_dispatch. Never bump versions manually.
 
 ## Git
 
