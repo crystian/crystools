@@ -8,5 +8,6 @@
   },
   "repository": "https://github.com/crystian/crystools",
   "license": "MIT",
-  "keywords": ["statusline", "status line custom", "status line"]
+  "keywords": ["statusline", "status line custom", "status line"],
+  "category": "tooling"
 }
