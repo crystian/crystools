@@ -30,7 +30,7 @@ agent_name=$(echo "$input" | jq -r '.agent.name // empty')
 exceeds_200k=$(echo "$input" | jq -r '.exceeds_200k_tokens // empty')
 
 # Placeholder: no activity yet
-if [ -z "$cost_usd" ] && [ -z "$duration_ms" ]; then
+if [ -z "$cur_in" ]; then
   printf "\033[38;2;80;80;100m …just waiting for activity… \033[0m\n"
   exit 0
 fi
