@@ -1,6 +1,6 @@
 {
   "name": "crystools-statusline",
-  "version": "0.2.13",
+  "version": "0.2.14",
   "description": "Status line with context window, git, cost, rate limits, and cache stats.",
   "author": {
     "name": "Crystian",

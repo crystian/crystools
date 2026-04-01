@@ -3,7 +3,7 @@ name: crystools-statusline
 description: Configure Claude Code status line with context, git, cost, rate limits, and cache info.
 allowed-tools: Bash(bash:*), Bash(cat:*), Read, AskUserQuestion
 metadata:
-  version: 0.2.13
+  version: 0.2.14
 ---
                      
 # Status Line Setup
