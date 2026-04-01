@@ -43,14 +43,16 @@ jobs:
 
       - name: Bump SKILL.md versions
         run: |
+          shopt -s nullglob
           for SKILL in skills/*/SKILL.md; do
-            [ -f "$SKILL" ] && sed -i "s/version: $CURRENT/version: $VERSION/" "$SKILL"
+            sed -i "s/version: $CURRENT/version: $VERSION/" "$SKILL"
           done
 
       - name: Bump command versions
         run: |
+          shopt -s nullglob
           for CMD in commands/*.md; do
-            [ -f "$CMD" ] && sed -i "s/version: $CURRENT/version: $VERSION/" "$CMD"
+            sed -i "s/version: $CURRENT/version: $VERSION/" "$CMD"
           done
 
       - name: Commit and push
