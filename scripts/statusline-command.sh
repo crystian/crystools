@@ -6,6 +6,8 @@ if ! command -v jq &>/dev/null; then
   exit 0
 fi
 
+echo works!
+
 input=$(cat)
 
 cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // ""')
