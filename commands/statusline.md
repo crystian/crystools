@@ -16,7 +16,13 @@ Your **very first output** to the user MUST be:
 crystools v{version} — status line setup
 ```
 
-where `{version}` is the value of `metadata.version` from this file's YAML frontmatter (above, between the `---` lines). Do NOT search for it elsewhere. Do NOT run any command to find it. It is already in this document.
+To get `{version}`, run:
+
+```bash
+find ~/.claude -name "plugin.json" -path "*crystools-statusline*" 2>/dev/null | sort -V | tail -1 | xargs jq -r .version
+```
+
+Use the EXACT output of that command. Do NOT guess, hallucinate, or read the version from any other source (not from the YAML frontmatter, not from file paths, not from settings.json).
 
 Do NOT skip this. This applies to EVERY path (install, reinstall, config, uninstall, help).
 
@@ -83,7 +89,12 @@ Inform the user:
 > You can review the script source here: https://github.com/crystian/crystools/blob/main/scripts/statusline-command.sh
 > You will be asked for permission before any file is modified.
 
-Then show a **Live Preview** (see Live Preview section below).
+Then show the preview:
+
+```
+ 🪟[▓▓▓32%----]  📁 myproject  ⎇ main △ +12 -3  🕐 12:32:34 (08:28:21)
+ ⏳[▓12%------]  🤖 Opus 4.6 1M  💲 1.23  🔄 TK Cached w/r: 45/120  ⠋
+```
 
 ## Icon mode question
 
@@ -116,37 +127,25 @@ Show the script output to the user. Do NOT add any extra commentary, summary, or
 
 ## Help
 
-Show a **Live Preview** (see Live Preview section below).
-
-Then explain what each segment shows. Use icons matching the configured `CRYSTOOLS_SL_ICONS` mode (from `env` in `~/.claude/settings.json`, default `emoji`):
-
-| Segment | nerd | emoji | none |
-|---|---|---|---|
-| Context window | 󰾆 | 🪟 | — |
-| Directory | 󰝰 | 📁 | — |
-| Git | 󰘬 | ⎇ | — |
-| Duration | 󱑎 | 🕐 | — |
-| Rate limit | 󰔟 | ⏳ | — |
-| Model | 󱙺 | 🤖 | — |
-| Cost | $ | 💲 | — |
-| Cache | 󰑓 | 🔄 | — |
-
-Format each line as `{icon} **Name** — description`:
-- **Context window** — usage progress bar with color thresholds (green < 50%, yellow < 75%, red >= 75%)
-- **Directory** — smart project path (deep paths show `project/…/current`)
-- **Git** — branch name, dirty/clean indicator, ahead/behind upstream, lines added/removed
-- **Duration** — session wall time + API time in parentheses
-- **Rate limit** — 5-hour usage bar with reset countdown
-- **Model** — current model + context window size
-- **Cost** — running session cost in USD
-- **Cache** — tokens written/read from cache
-
-## Live Preview
-
-Generate an accurate preview by running the actual statusline script with sample data. This ensures the preview matches the real output (icons, colors, layout) for the user's configured icon mode.
+Show the preview and segment descriptions with ANSI colors matching the actual statusline. Run this command:
 
 ```bash
-PREVIEW_CWD=$(git rev-parse --show-toplevel 2>/dev/null || find "$(pwd)" -maxdepth 2 -name ".git" -type d 2>/dev/null | head -1 | xargs -r dirname || pwd) && SL_SCRIPT=$(find ~/.claude -name "statusline-command.sh" -path "*crystools*" 2>/dev/null | sort -V | tail -1) && echo '{"workspace":{"current_dir":"'"$PREVIEW_CWD"'"},"model":{"display_name":"Opus 4.6"},"cost":{"total_cost_usd":1.23,"total_duration_ms":45154000,"total_api_duration_ms":30501000,"total_lines_added":12,"total_lines_removed":3},"context_window":{"used_percentage":32,"context_window_size":1000000,"current_usage":{"input_tokens":50000,"output_tokens":10000,"cache_creation_input_tokens":45000,"cache_read_input_tokens":120000}},"rate_limits":{"five_hour":{"used_percentage":12}}}' | bash "$SL_SCRIPT"
+MODE=$(jq -r '.env.CRYSTOOLS_SL_ICONS // "emoji"' ~/.claude/settings.json 2>/dev/null || echo emoji)
+case "$MODE" in
+  nerd)  ctx='󰾆' csep=' ' dir='󰝰' git='󰘬' tm='󱑎' rt='󰔟 ' mdl='󱙺' cst='$' cch='󰑓' ;;
+  emoji) ctx='🪟' csep='' dir='📁' git='⎇' tm='🕐' rt='⏳' mdl='🤖' cst='💲' cch='🔄' ;;
+  *)     ctx='' csep='' dir='' git='' tm='' rt='' mdl='' cst='$' cch='' ;;
+esac
+printf '\033[38;2;0;200;255m %s%s[▓▓▓32%%\033[38;2;60;60;80m----\033[38;2;0;200;255m] \033[0m\033[38;2;220;190;130m %s myproject \033[0m\033[38;2;190;170;220m %s main △  \033[38;2;0;255;140m+12 \033[38;2;255;60;90m-3 \033[0m\033[38;2;160;210;200m %s 12:32:34 (08:28:21) \033[0m\n' "$ctx" "$csep" "$dir" "$git" "$tm"
+printf '\033[38;2;0;255;180m %s[▓12%%\033[38;2;60;60;80m------\033[38;2;0;255;180m] \033[0m\033[38;2;210;170;190m %s Opus 4.6 1M \033[0m\033[38;2;170;210;170m %s 1.23 \033[0m\033[38;2;180;190;210m %s TK Cached w/r: 45/120 \033[0m\033[38;2;0;200;255m ⠋ \033[0m\n\n' "$rt" "$mdl" "$cst" "$cch"
+printf '  \033[38;2;0;200;255m%sContext window\033[0m — usage progress bar (green < 50%%, yellow < 75%%, red >= 75%%)\n' "${ctx:+$ctx }"
+printf '  \033[38;2;220;190;130m%sDirectory\033[0m — smart project path (deep paths show project/…/current)\n' "${dir:+$dir }"
+printf '  \033[38;2;190;170;220m%sGit\033[0m — branch, dirty/clean, ahead/behind, lines +/-\n' "${git:+$git }"
+printf '  \033[38;2;160;210;200m%sDuration\033[0m — session wall time + API time in parentheses\n' "${tm:+$tm }"
+printf '  \033[38;2;0;255;180m%sRate limit\033[0m — 5-hour usage bar with reset countdown\n' "${rt:+${rt% } }"
+printf '  \033[38;2;210;170;190m%sModel\033[0m — current model + context window size\n' "${mdl:+$mdl }"
+printf '  \033[38;2;170;210;170m%sCost\033[0m — running session cost in USD\n' "${cst:+$cst }"
+printf '  \033[38;2;180;190;210m%sCache\033[0m — tokens written/read from cache\n' "${cch:+$cch }"
 ```
 
-The Bash output includes ANSI colors and the correct icons. After running, do NOT re-output the result in a code block — the tool output is already visible to the user.
+After running, do NOT re-output the result — the tool output is already visible to the user with proper ANSI colors.
