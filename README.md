@@ -1,13 +1,8 @@
-# Crystools
+# Crystools-StatusLine
 
 Claude Code plugin with productivity tools: status line, utilities, and workflow enhancements.
 
-## Available Commands
-
-| Command | Description |
-|---------|-------------|
-| `/crystools-statusline:statusline` | Configure a two-line powerline-style status bar with context, git, cost, rate limits, and cache info |
-                         
+![sample.jpg](assets/sample.jpg)
 
 ## Install
 
@@ -16,7 +11,19 @@ claude plugin marketplace add crystian/mia-marketplace
 claude plugin install crystools-statusline@mia-marketplace
 ```
 
-Then inside Claude Code, run `/statusline` to set up the status line.
+Then inside Claude Code, run `/crystools-statusline` to set up the status line.
+
+### Status Line Preview
+
+Supports three icon modes: **nerd**, **emoji** (default), and **none** (plain text).
+
+![emojis.jpg](assets/emojis.jpg)
+
+### Help
+
+There are these monitors (use `help` after the command to see it):
+
+![monitors.jpg](assets/monitors.jpg)
 
 ### Permissions
 
@@ -25,12 +32,6 @@ During setup, Claude Code will ask for permission to:
 - **Read** `~/.claude/settings.json` — to check if the status line is already configured
 - **Edit** `~/.claude/settings.json` — to add the `statusLine` and `CRYSTOOLS_SL_ICONS` configuration
 - **Bash (find)** — to locate the [`statusline-command.sh`](./scripts/statusline-command.sh) script in the plugin installation directory
-
-## Status Line Preview
-
-Supports three icon modes: **nerd**, **emoji** (default), and **none** (plain text).
-
-
 
 ## Platform Support
 
