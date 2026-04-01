@@ -1,9 +1,12 @@
 {
   "name": "crystools",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Crystian's toolbox — status line, utilities, and productivity skills for Claude Code.",
   "author": {
     "name": "Crystian",
     "url": "https://www.linkedin.com/in/crystian"
-  }
+  },
+  "repository": "https://github.com/crystian/crystools",
+  "license": "MIT",
+  "keywords": ["statusline", "status line custom", "status line"]
 }
