@@ -18,15 +18,15 @@ if ! command -v jq &>/dev/null; then
   exit 1
 fi
 
-# Find the plugin root (latest cached version)
-PLUGIN_JSON=$(find ~/.claude -name "plugin.json" -path "*crystools*/.claude-plugin/*" 2>/dev/null | sort -V | tail -1)
+# Resolve plugin root from this script's own location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
+PLUGIN_JSON="$PLUGIN_ROOT/.claude-plugin/plugin.json"
 
-if [ -z "$PLUGIN_JSON" ]; then
-  echo "Error: crystools plugin not found in ~/.claude"
+if [ ! -f "$PLUGIN_JSON" ]; then
+  echo "Error: plugin.json not found at $PLUGIN_JSON"
   exit 1
 fi
-
-PLUGIN_ROOT=$(dirname "$(dirname "$PLUGIN_JSON")")
 SCRIPT_PATH="$PLUGIN_ROOT/scripts/statusline-command.sh"
 
 if [ ! -f "$SCRIPT_PATH" ]; then
