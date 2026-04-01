@@ -40,5 +40,13 @@ for SKILL in skills/*/SKILL.md; do
   fi
 done
 
+# Bump version in command frontmatter
+for CMD in commands/*.md; do
+  if [ -f "$CMD" ] && grep -q "version: $CURRENT" "$CMD"; then
+    sed -i "s/version: $CURRENT/version: $NEW/" "$CMD"
+    git add "$CMD"
+  fi
+done
+
 echo "  Bumped: $CURRENT → $NEW"
 echo ""

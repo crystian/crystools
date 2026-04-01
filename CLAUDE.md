@@ -8,7 +8,6 @@ Claude Code plugin with productivity tools: status line, utilities, and workflow
 
 ```
 .claude-plugin/
-  marketplace.json  — marketplace manifest
   plugin.json       — plugin manifest (name, version, description)
 commands/           — slash commands (auto-discovered)
   <name>.md         — command definition (frontmatter + instructions)

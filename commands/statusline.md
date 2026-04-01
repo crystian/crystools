@@ -1,30 +1,79 @@
 ---
 description: Configure Claude Code status line with context, git, cost, rate limits, and cache info.
-allowed-tools: Read, Edit, Bash(grep:*), Bash(find:*)
+allowed-tools: Bash(bash:*), Bash(cat:*), Read, AskUserQuestion
+metadata:
+  version: 0.2.8
 ---
-
+                     
 # Status Line Setup
 
-First, read `~/.claude/settings.json` and check if `statusLine` is already configured.
+**IMPORTANT: Do NOT use or spawn the `statusline-setup` agent. All steps must be executed directly in this command.**
 
-## If already installed
+Your **very first output** to the user MUST be:
 
-Tell the user the status line is already configured and ask:
-1. Reinstall (reconfigure)
-2. Uninstall (remove status line)
-3. Cancel
+```
+crystools v{version} — status line setup
+```
 
-If **uninstall**: remove the `statusLine` key and the `CRYSTOOLS_SL_ICONS` key from `env` in `~/.claude/settings.json`, preserving all other keys. Confirm removal and tell the user to restart Claude Code.
+where `{version}` is the value of `metadata.version` from this file's YAML frontmatter (above, between the `---` lines). Do NOT search for it elsewhere. Do NOT run any command to find it. It is already in this document.
 
-If **cancel**: do nothing and stop.
+Do NOT skip this. This applies to EVERY path (install, reinstall, config, uninstall, help).
 
-If **reinstall**: continue with the setup procedure below.
+Then read `~/.claude/settings.json` and check if a `statusLine` key exists.
 
-## If on Windows (CMD/PowerShell)
+**RULE: After showing the version line, your next output to the user must be ONLY one of these:**
+- The AskUserQuestion (if already installed)
+- The install info block (if not installed)
+**Nothing else. No status messages. No explanations about what you found.**
 
-Inform the user that native Windows (CMD/PowerShell) is not supported yet. However, **WSL is fully supported** — this plugin was developed on WSL. If they're using WSL, continue with the setup. Otherwise, do nothing and stop.
+If it exists and the command contains "crystools/*/statusline-command.sh":
 
-## If not installed
+**Update check**: Extract the version number from the `statusLine.command` path (the segment between `crystools/` and `/scripts/`, e.g. `0.2.4`). Compare it with `metadata.version` from this file's frontmatter. If they differ, output:
+
+```
+⬆ Updated! v{installed_version} → v{current_version}
+```
+
+Then use AskUserQuestion:
+
+- question: "A new version is available. Update now?"
+- header: "Update"
+- options:
+  - label: "Update", description: "Reinstall with the new version"
+  - label: "Cancel", description: "Keep current version"
+
+If **Update**: proceed to the icon mode question and install flow (see below).
+If **Cancel**: stop.
+
+If the versions match (no update), use AskUserQuestion:
+
+- question: "crystools status line is already installed. What do you want to do?"
+- header: "Action"
+- options:
+  - label: "Reinstall", description: "Reconfigure from scratch"
+  - label: "Config", description: "Change icon mode"
+  - label: "Uninstall", description: "Remove status line"
+  - label: "Help", description: "Show preview and segment descriptions"
+
+If **Help**: show the preview and segment descriptions (see Help section below). Then stop.
+
+If **Config**: show the current `CRYSTOOLS_SL_ICONS` value from `env` in `~/.claude/settings.json`, then ask icon mode with AskUserQuestion (see icon mode question below). Once the user picks, update `CRYSTOOLS_SL_ICONS` inside the `env` object in `~/.claude/settings.json` using the Edit tool directly on the JSON file. Do NOT use environment variables or export commands. Preserve all other keys. Confirm the change. Stop.
+
+If **Uninstall**: find and run the uninstall script:
+
+```bash
+find ~/.claude -name "uninstall.sh" -path "*crystools/scripts/*" 2>/dev/null | sort -V | tail -1
+```
+
+```bash
+bash <RESOLVED_PATH_TO_UNINSTALL.SH>
+```
+
+Show the output and stop.
+
+If it exists but does NOT contain "crystools/scripts/statusline-command.sh", tell the user a different status line is configured and it will be replaced. Ask only: continue or cancel. If the user says no, stop.
+
+If the user says yes, reinstall, or there was no existing statusLine:
 
 Inform the user:
 
@@ -33,14 +82,52 @@ Inform the user:
 > You can review the script source here: https://github.com/crystian/crystools/blob/main/scripts/statusline-command.sh
 > You will be asked for permission before any file is modified.
 
-Then show a preview of how the status line will look (emoji mode):
+Then show the preview:
 
 ```
  🪟 [▓▓▓32%-------]  📁 myproject  ⎇ main 󰄬 +12 -3  🕐 00:12:34 (00:08:21)
  ⏳[12%--------]  🤖 Opus 4.6 1M  💲 1.23  🔄 TK Cached w/r: 45/120  ⠋
 ```
 
-Explain what each segment shows:
+## Icon mode question
+
+Ask with AskUserQuestion:
+
+- question: "Which icon mode do you prefer?"
+- header: "Icons"
+- options:
+  - label: "Nerd", description: "Nerd Font icons (requires a Nerd Font terminal)"
+  - label: "Emoji (Recommended)", description: "Unicode emoji fallback"
+  - label: "None", description: "Plain text, no icons"
+
+## Install
+
+Once the user picks icon mode, find the install script:
+
+```bash
+find ~/.claude -name "install.sh" -path "*crystools/scripts/*" 2>/dev/null | sort -V | tail -1
+```
+
+**NEVER fabricate or guess paths** — only use the result of this command.
+
+Then execute it with the chosen icon mode (nerd, emoji, or none):
+
+```bash
+bash <RESOLVED_PATH_TO_INSTALL.SH> <icon_mode>
+```
+
+Show the script output to the user. Do NOT add any extra commentary, summary, or instructions after the output. Do NOT tell the user to restart.
+
+## Help
+
+Show the preview:
+
+```
+ 🪟 [▓▓▓32%-------]  📁 myproject  ⎇ main 󰄬 +12 -3  🕐 00:12:34 (00:08:21)
+ ⏳[12%--------]  🤖 Opus 4.6 1M  💲 1.23  🔄 TK Cached w/r: 45/120  ⠋
+```
+
+Then explain what each segment shows:
 - 🪟 **Context window** — usage progress bar with color thresholds (green < 50%, yellow < 75%, red >= 75%)
 - 📁 **Directory** — smart project path (deep paths show `project/…/current`)
 - ⎇ **Git** — branch name, dirty/clean indicator, ahead/behind upstream, lines added/removed
@@ -49,48 +136,3 @@ Explain what each segment shows:
 - 🤖 **Model** — current model + context window size
 - 💲 **Cost** — running session cost in USD
 - 🔄 **Cache** — tokens written/read from cache
-
-Wait for the user to confirm before proceeding. If the user declines, do nothing and stop.
-
-## Setup procedure
-
-1. **Find the script path** — resolve the absolute path to `statusline-command.sh`:
-   ```bash
-   find ~/.claude -name "statusline-command.sh" -path "*/scripts/*" 2>/dev/null | head -1
-   ```
-   If not found, ask the user for the plugin location.
-
-2. **Read current settings** from `~/.claude/settings.json`.
-
-3. **Ask the user which icon mode they prefer** (if `CRYSTOOLS_SL_ICONS` is not already set):
-
-   | Value   | Description                          |
-   |---------|--------------------------------------|
-   | `nerd`  | Nerd Font icons (requires a [Nerd Font](https://www.nerdfonts.com/) terminal) |
-   | `emoji` | Unicode emoji fallback (default)     |
-   | `none`  | Plain text, no icons                 |
-
-4. **Set the `statusLine` and `env` config** in `~/.claude/settings.json`, preserving all existing keys:
-   ```json
-   {
-     "statusLine": {
-       "type": "command",
-       "command": "bash <ABSOLUTE_PATH>/statusline-command.sh"
-     },
-     "env": {
-       "CRYSTOOLS_SL_ICONS": "<user_choice>"
-     }
-   }
-   ```
-
-5. **Confirm** the setup is complete and tell the user to restart Claude Code to see the status line.
-
-## Uninstall
-
-To remove: delete the `statusLine` key and the `CRYSTOOLS_SL_ICONS` env var from `~/.claude/settings.json`.
-
-## Requirements
-
-- `jq` must be installed (used by the script to parse JSON input)
-- `git` for branch/status info
-- A Nerd Font-compatible terminal if using `nerd` icon mode
