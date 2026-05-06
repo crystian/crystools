@@ -22,9 +22,22 @@ if ! jq -e '.statusLine' "$SETTINGS" &>/dev/null; then
   exit 0
 fi
 
-# Remove statusLine + env.CRYSTOOLS_SL_ICONS (preserve everything else)
-jq 'del(.statusLine) | if .env then .env |= del(.CRYSTOOLS_SL_ICONS) | if .env == {} then del(.env) else . end else . end' \
-  "$SETTINGS" > "$SETTINGS.tmp" && mv "$SETTINGS.tmp" "$SETTINGS"
+# Remove statusLine + crystools hooks + env.CRYSTOOLS_SL_ICONS (preserve everything else)
+jq '
+  del(.statusLine)
+  | if .env then .env |= del(.CRYSTOOLS_SL_ICONS) | if .env == {} then del(.env) else . end else . end
+  | if .hooks then
+      .hooks.PreToolUse    = ((.hooks.PreToolUse    // []) | map(select(.crystools != true)))
+      | .hooks.PostToolUse  = ((.hooks.PostToolUse   // []) | map(select(.crystools != true)))
+      | .hooks.SessionStart = ((.hooks.SessionStart  // []) | map(select(.crystools != true)))
+      | .hooks.SessionEnd   = ((.hooks.SessionEnd    // []) | map(select(.crystools != true)))
+      | if (.hooks.PreToolUse    | length) == 0 then del(.hooks.PreToolUse)    else . end
+      | if (.hooks.PostToolUse   | length) == 0 then del(.hooks.PostToolUse)   else . end
+      | if (.hooks.SessionStart  | length) == 0 then del(.hooks.SessionStart)  else . end
+      | if (.hooks.SessionEnd    | length) == 0 then del(.hooks.SessionEnd)    else . end
+      | if .hooks == {} then del(.hooks) else . end
+    else . end
+' "$SETTINGS" > "$SETTINGS.tmp" && mv "$SETTINGS.tmp" "$SETTINGS"
 
 echo ""
 echo "  crystools — uninstalled"

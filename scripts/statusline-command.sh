@@ -29,6 +29,7 @@ vim_mode=$(echo "$input" | jq -r '.vim.mode // empty')
 agent_name=$(echo "$input" | jq -r '.agent.name // empty')
 exceeds_200k=$(echo "$input" | jq -r '.exceeds_200k_tokens // empty')
 effort=$(echo "$input" | jq -r '.effort.level // empty')
+session_id=$(echo "$input" | jq -r '.session_id // empty')
 
 # Placeholder: no activity yet
 if [ -z "$cur_in" ]; then
@@ -68,16 +69,19 @@ case "${CRYSTOOLS_SL_ICONS:-emoji}" in
     PL=''   PLR=''
     ICO_DIR='󰝰'  ICO_GIT='󰘬'  ICO_MODEL='󱙺'  ICO_CTX='󰾆'
     ICO_COST='$'  ICO_TIME='󱑎'  ICO_API='󰒍'  ICO_CACHE='󰑓'
+    ICO_AGENT='󰚩' ICO_STATS='󰕮' ICO_FAIL='󰅖'
     ;;
   emoji)
     PL='▶'  PLR='◀'
-    ICO_DIR='📁'  ICO_GIT='⎇'  ICO_MODEL='🤖'  ICO_CTX='🪟'
+    ICO_DIR='📁'  ICO_GIT='⎇'  ICO_MODEL='✨'  ICO_CTX='🪟'
     ICO_COST='💲'  ICO_TIME='🕐'  ICO_API='⚡'  ICO_CACHE='🔄'
+    ICO_AGENT='🤖' ICO_STATS='📊' ICO_FAIL='❌'
     ;;
   *)
     PL='|'  PLR='|'
     ICO_DIR=''  ICO_GIT=''  ICO_MODEL=''  ICO_CTX=''
     ICO_COST=''  ICO_TIME=''  ICO_API=''  ICO_CACHE=''
+    ICO_AGENT=''  ICO_STATS=''  ICO_FAIL='X'
     ;;
 esac
 
@@ -267,5 +271,98 @@ fi
 seg "" "0;200;255" "${spin_ico}"
 
 close_seg
+
+# --- Line 3: subagents (only if state file exists) ---
+agents_file=""
+if [ -n "$session_id" ]; then
+  if [ -f "$cwd/.tmp/agents-${session_id}.jsonl" ]; then
+    agents_file="$cwd/.tmp/agents-${session_id}.jsonl"
+  elif [ -f "$HOME/.claude/tmp/agents-${session_id}.jsonl" ]; then
+    agents_file="$HOME/.claude/tmp/agents-${session_id}.jsonl"
+  fi
+fi
+
+if [ -n "$agents_file" ]; then
+  now_ms=$(date +%s%3N)
+  # Aggregate: total agents (starts), tokens (sum of ends), total duration,
+  # last active = last start without matching end
+  # Stale threshold: starts without a matching end older than this are counted
+  # as failed (covers validation errors / crashes that bypass PostToolUse)
+  stale_ms=300000
+
+  agents_summary=$(jq -src --argjson now "$now_ms" --argjson stale "$stale_ms" '
+    . as $events |
+    ([$events[] | select(.event=="start")] | length) as $total |
+    ([$events[] | select(.event=="end")]) as $ends |
+    ($ends | map(.tokens // 0) | add // 0) as $tokens |
+    ($ends | map(.msgs   // 0) | add // 0) as $msgs |
+    ($ends | map(.tools  // 0) | add // 0) as $tools |
+    ($ends | map(select((.status // "completed") != "completed")) | length) as $failed_ends |
+    ($events | group_by(.id) | map(
+      (map(select(.event=="start")) | .[0]) as $st |
+      (map(select(.event=="end")) | .[0]) as $en |
+      if $st and $en then ($en.ts - $st.ts) else 0 end
+    ) | add // 0) as $dur_ms |
+    ([$events[] | select(.event=="start")] | map(.id) - ($ends | map(.id))) as $orphan_ids |
+    ([$events[] | select(.event=="start") | select(.id as $i | $orphan_ids | index($i))]) as $orphans |
+    ([$orphans[] | select(($now - .ts) <  $stale)]) as $active_starts |
+    ([$orphans[] | select(($now - .ts) >= $stale)] | length)  as $stale_count |
+    ($active_starts | last) as $active |
+    {
+      total: $total,
+      tokens: $tokens,
+      msgs: $msgs,
+      tools: $tools,
+      failed: ($failed_ends + $stale_count),
+      dur_ms: $dur_ms,
+      active_agent: ($active.agent // ""),
+      active_since: ($active.ts // 0)
+    }
+  ' "$agents_file" 2>/dev/null)
+
+  if [ -n "$agents_summary" ]; then
+    a_total=$(echo "$agents_summary" | jq -r '.total')
+    a_tokens=$(echo "$agents_summary" | jq -r '.tokens')
+    a_msgs=$(echo "$agents_summary" | jq -r '.msgs')
+    a_tools=$(echo "$agents_summary" | jq -r '.tools')
+    a_failed=$(echo "$agents_summary" | jq -r '.failed')
+    a_dur_ms=$(echo "$agents_summary" | jq -r '.dur_ms')
+    a_active=$(echo "$agents_summary" | jq -r '.active_agent')
+    a_since=$(echo "$agents_summary" | jq -r '.active_since')
+
+    if [ "$a_total" -gt 0 ] 2>/dev/null; then
+      output+="\n"
+
+      # Active subagent (if any)
+      if [ -n "$a_active" ] && [ "$a_active" != "null" ] && [ "$a_active" != "" ]; then
+        elapsed_ms=$((now_ms - a_since))
+        el_sec=$((elapsed_ms / 1000))
+        el_m=$((el_sec / 60))
+        el_s=$((el_sec % 60))
+        active_prefix=""
+        [ -n "$ICO_AGENT" ] && active_prefix="${ICO_AGENT} "
+        seg "" "255;200;100" "${active_prefix}${a_active} ${spin_ico} $(printf "%d:%02d" $el_m $el_s)"
+      fi
+
+      # Aggregate stats
+      tot_sec=$((a_dur_ms / 1000))
+      tot_m=$((tot_sec / 60))
+      tot_s=$((tot_sec % 60))
+      tok_k=$((a_tokens / 1000))
+      stats_prefix=""
+      [ -n "$ICO_STATS" ] && stats_prefix="${ICO_STATS} "
+      tok_label="${a_tokens}"
+      [ "$tok_k" -gt 0 ] && tok_label="${tok_k}k"
+      stats_text="${stats_prefix}${a_total} agents"
+      if [ "$a_failed" -gt 0 ] 2>/dev/null; then
+        stats_text+=" · \033[38;2;255;80;100m${a_failed} ${ICO_FAIL}\033[38;2;180;220;180m"
+      fi
+      stats_text+=" · ${a_msgs} msgs · ${a_tools} tools · ${tok_label} tok · $(printf "%d:%02d" $tot_m $tot_s)"
+      seg "" "180;220;180" "$stats_text"
+
+      close_seg
+    fi
+  fi
+fi
 
 printf "%b\n" "$output"
